@@ -54,6 +54,17 @@ Built with performance, security, and reliability in mind, it parses Abstract Sy
    npm run test:coverage
    ```
 
+   To manually run the live OpenRouter check locally, set the token only in your shell and opt in explicitly:
+
+   PowerShell:
+   ```powershell
+   $env:OPENROUTER_API_KEY = 'your-token'
+   $env:RUN_OPENROUTER_LIVE_TESTS = '1'
+   npm run test:live
+   ```
+
+   The live suite is not included in `npm test` or CI. It uses free text models and sends one test prompt to OpenRouter.
+
 3. **Package the extension**:
    ```bash
    npm run package

@@ -41,6 +41,8 @@
             "package": "node esbuild.js --minify",
             "pretest": "tsc -p ./",
             "test": "vscode-test",
+            "compile:test:live": "tsc -p ./tsconfig.live.json",
+            "test:live": "npm run compile:test:live && mocha --ui tdd --timeout 120000 out-live/test/live/openRouterIntegration.js",
             "test:unit:coverage": "tsc -p ./ && c8 --reporter=html --reporter=text mocha --ui tdd --timeout 30000 out/test/suite/harnessFailover.test.js",
             "test:coverage": "npm run test:unit:coverage",
             "coverage:open": "npm run test:coverage && open-cli coverage/index.html"
@@ -48,7 +50,7 @@
       "devDependencies": {
             "@types/jest": "^30.0.0",
             "@types/mocha": "^10.0.10",
-            "@types/node": "^24.0.0",
+            "@types/node": "^24.13.4",
             "@types/sinon": "^17.0.3",
             "@types/vscode": "^1.85.0",
             "@vscode/test-cli": "^0.0.15",
@@ -60,7 +62,6 @@
             "sinon": "^17.0.1",
             "typescript": "^5.4.0"
       },
-      "dependencies": {},
       "overrides": {
             "mocha": "^12.0.0",
             "serialize-javascript": "^7.0.5"

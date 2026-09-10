@@ -5,11 +5,27 @@ export class ExplanationPanel {
   public static currentPanel: ExplanationPanel | undefined;
   private readonly panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
+  private pendingMessages: Array<{ command: string; text?: string }> = [];
+  private webviewReady = false;
   private disposed = false;
 
   private constructor(panel: vscode.WebviewPanel) {
     this.panel = panel;
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+    this.disposables.push(
+      this.panel.webview.onDidReceiveMessage((message) => {
+        if (message.command !== 'ready') {
+          return;
+        }
+
+        this.webviewReady = true;
+        const pendingMessages = this.pendingMessages;
+        this.pendingMessages = [];
+        for (const pendingMessage of pendingMessages) {
+          void this.panel.webview.postMessage(pendingMessage);
+        }
+      })
+    );
   }
 
   public static createOrShow(extensionUri: vscode.Uri): ExplanationPanel {
@@ -37,6 +53,8 @@ export class ExplanationPanel {
     const webview = this.panel.webview;
     const nonce = this.getNonce();
     const safeInitialText = this.escapeHtml(initialText);
+    this.webviewReady = false;
+    this.pendingMessages = [];
 
     webview.html = `<!DOCTYPE html>
                                                                                                                               <html lang="en">
@@ -57,32 +75,35 @@ export class ExplanationPanel {
                                                                                                                                                                   const vscode = acquireVsCodeApi();
                                                                                                                                                                       const contentDiv = document.getElementById('content');
                                                                                                                                                                           
-                                                                                                                                                                                const previousState = vscode.getState();
-                                                                                                                                                                                  if (previousState && previousState.text) {
-                                                                                                                                                                                          contentDiv.textContent = previousState.text;
-                                                                                                                                                                                            }
-
                                                                                                                                                                                                 window.addEventListener('message', event => {
                                                                                                                                                                                                       const message = event.data;
                                                                                                                                                                                                             if (message.command === 'appendChunk') {
                                                                                                                                                                                                                         contentDiv.textContent += message.text;
-                                                                                                                                                                                                                          vscode.setState({ text: contentDiv.textContent });
                                                                                                                                                                                                                                   } else if (message.command === 'clear') {
                                                                                                                                                                                                                             contentDiv.textContent = '';
-                                                                                                                                                                                                                                                  vscode.setState({ text: '' });
                                                                                                                                                                                                                                                         }
                                                                                                                                                                                                                                                             });
+                                                                                                                                                                                                                                                               vscode.postMessage({ command: 'ready' });
                                                                                                                                                                                                                                                               </script>
                                                                                                                                                                                                                                                               </body>
                                                                                                                                                                                                                                                               </html>`;
   }
 
   public appendStreamChunk(text: string): void {
-    this.panel.webview.postMessage({ command: 'appendChunk', text });
+    this.sendMessage({ command: 'appendChunk', text });
   }
 
   public clear(): void {
-    this.panel.webview.postMessage({ command: 'clear' });
+    this.sendMessage({ command: 'clear' });
+  }
+
+  private sendMessage(message: { command: string; text?: string }): void {
+    if (!this.webviewReady) {
+      this.pendingMessages.push(message);
+      return;
+    }
+
+    void this.panel.webview.postMessage(message);
   }
 
   private getNonce(): string {

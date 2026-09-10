@@ -7,6 +7,7 @@ suite('ExplanationPanel Test Suite', () => {
     let sandbox: sinon.SinonSandbox;
     let mockWebviewPanel: any;
     let mockWebview: any;
+    let readyHandler: ((message: { command: string }) => void) | undefined;
 
     setup(() => {
         sandbox = sinon.createSandbox();
@@ -14,6 +15,10 @@ suite('ExplanationPanel Test Suite', () => {
             cspSource: 'vscode-webview:',
             html: '',
             postMessage: sandbox.stub().resolves(true)
+        };
+        mockWebview.onDidReceiveMessage = (handler: (message: { command: string }) => void) => {
+            readyHandler = handler;
+            return { dispose: sandbox.stub() };
         };
         mockWebviewPanel = {
             webview: mockWebview,
@@ -61,6 +66,9 @@ suite('ExplanationPanel Test Suite', () => {
     test('appendStreamChunk dispatches message to Webview', () => {
         const panel = ExplanationPanel.createOrShow(vscode.Uri.file('/fake'));
         panel.appendStreamChunk('Chunk data');
+
+        assert.ok(mockWebview.postMessage.notCalled);
+        readyHandler?.({ command: 'ready' });
 
         assert.ok(
             mockWebview.postMessage.calledOnceWith({

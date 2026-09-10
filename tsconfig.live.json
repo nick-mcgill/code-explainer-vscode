@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "out-live"
+  },
+  "include": [
+    "src/core/harness.ts",
+    "test/live/openRouterIntegration.ts"
+  ]
+}
