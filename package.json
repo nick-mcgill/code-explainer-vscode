@@ -5,6 +5,7 @@
       "version": "1.0.0",
       "publisher": "local-dev",
       "engines": {
+            "node": ">=24",
             "vscode": "^1.85.0"
       },
       "categories": [
@@ -46,7 +47,7 @@
       "devDependencies": {
             "@types/jest": "^30.0.0",
             "@types/mocha": "^10.0.10",
-            "@types/node": "^20.19.43",
+            "@types/node": "^24.0.0",
             "@types/node-fetch": "^2.6.11",
             "@types/sinon": "^17.0.3",
             "@types/vscode": "^1.85.0",
