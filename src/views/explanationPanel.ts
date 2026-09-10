@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
+import { randomBytes } from 'crypto';
 
 export class ExplanationPanel {
   public static currentPanel: ExplanationPanel | undefined;
   private readonly panel: vscode.WebviewPanel;
   private disposables: vscode.Disposable[] = [];
+  private disposed = false;
 
   private constructor(panel: vscode.WebviewPanel) {
     this.panel = panel;
@@ -34,6 +36,7 @@ export class ExplanationPanel {
   public updateContent(initialText: string = ''): void {
     const webview = this.panel.webview;
     const nonce = this.getNonce();
+    const safeInitialText = this.escapeHtml(initialText);
 
     webview.html = `<!DOCTYPE html>
                                                                                                                               <html lang="en">
@@ -49,23 +52,23 @@ export class ExplanationPanel {
                                                                                                                                                           </style>
                                                                                                                                                           </head>
                                                                                                                                                           <body>
-                                                                                                                                                            <div id="content">${initialText}</div>
+                                                                                                                                                            <div id="content">${safeInitialText}</div>
                                                                                                                                                               <script nonce="${nonce}">
                                                                                                                                                                   const vscode = acquireVsCodeApi();
                                                                                                                                                                       const contentDiv = document.getElementById('content');
                                                                                                                                                                           
-                                                                                                                                                                              const previousState = vscode.getState();
+                                                                                                                                                                                const previousState = vscode.getState();
                                                                                                                                                                                   if (previousState && previousState.text) {
-                                                                                                                                                                                        contentDiv.innerHTML = previousState.text;
+                                                                                                                                                                                          contentDiv.textContent = previousState.text;
                                                                                                                                                                                             }
 
                                                                                                                                                                                                 window.addEventListener('message', event => {
                                                                                                                                                                                                       const message = event.data;
                                                                                                                                                                                                             if (message.command === 'appendChunk') {
-                                                                                                                                                                                                                    contentDiv.innerHTML += message.text;
-                                                                                                                                                                                                                            vscode.setState({ text: contentDiv.innerHTML });
+                                                                                                                                                                                                                        contentDiv.textContent += message.text;
+                                                                                                                                                                                                                          vscode.setState({ text: contentDiv.textContent });
                                                                                                                                                                                                                                   } else if (message.command === 'clear') {
-                                                                                                                                                                                                                                          contentDiv.innerHTML = '';
+                                                                                                                                                                                                                            contentDiv.textContent = '';
                                                                                                                                                                                                                                                   vscode.setState({ text: '' });
                                                                                                                                                                                                                                                         }
                                                                                                                                                                                                                                                             });
@@ -83,12 +86,31 @@ export class ExplanationPanel {
   }
 
   private getNonce(): string {
-    return Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    return randomBytes(16).toString('hex');
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>'"]/g, (character) => {
+      const entities: Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      };
+      return entities[character];
+    });
   }
 
   public dispose(): void {
+    if (this.disposed) {
+      return;
+    }
+
+    this.disposed = true;
     ExplanationPanel.currentPanel = undefined;
-    this.panel.dispose();
     this.disposables.forEach((d) => d.dispose());
+    this.disposables = [];
+    this.panel.dispose();
   }
 }

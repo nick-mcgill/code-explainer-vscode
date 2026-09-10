@@ -69,4 +69,12 @@ suite('ExplanationPanel Test Suite', () => {
             })
         );
     });
+
+    test('escapes initial content before embedding it in webview HTML', () => {
+        const panel = ExplanationPanel.createOrShow(vscode.Uri.file('/fake'));
+        panel.updateContent('<img src=x onerror=alert(1)>');
+
+        assert.ok(mockWebview.html.includes('&lt;img src=x onerror=alert(1)&gt;'));
+        assert.ok(!mockWebview.html.includes('<img src=x onerror=alert(1)>'));
+    });
 });

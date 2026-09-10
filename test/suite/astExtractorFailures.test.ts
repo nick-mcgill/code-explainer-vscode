@@ -33,4 +33,22 @@ suite('TreeSitterExtractor Failure Paths Test Suite', () => {
     const locations = extractor.getFunctionLocations(doc);
     assert.deepStrictEqual(locations, []);
   });
+
+  test('getFunctionLocations returns complete function ranges and ignores comments and strings', async () => {
+    await extractor.initParser(vscode.Uri.file('/fake'), 'typescript');
+    const source = `// function fake() {}
+const text = "function alsoFake() {}";
+function real(value: number) {
+  if (value) {
+    return value + 1;
+  }
+}`;
+    const doc = await vscode.workspace.openTextDocument({ language: 'typescript', content: source });
+
+    const locations = extractor.getFunctionLocations(doc);
+
+    assert.strictEqual(locations.length, 1);
+    assert.strictEqual(locations[0].name, 'real');
+    assert.strictEqual(doc.getText(locations[0].codeRange), source.slice(source.indexOf('function real'), source.length));
+  });
 });

@@ -1,7 +1,6 @@
 import * as assert from 'assert';
 import * as sinon from 'sinon';
 import { Readable } from 'stream';
-import * as fetchModule from 'node-fetch';
 import { OpenRouterFreeHarness } from '../../src/core/harness';
 
 suite('OpenRouterFreeHarness Model Failover Test Suite', () => {
@@ -10,7 +9,6 @@ suite('OpenRouterFreeHarness Model Failover Test Suite', () => {
 
     setup(() => {
         sandbox = sinon.createSandbox();
-        harness = new OpenRouterFreeHarness();
     });
 
     teardown(() => {
@@ -22,7 +20,8 @@ suite('OpenRouterFreeHarness Model Failover Test Suite', () => {
             'data: {"choices":[{"delta":{"content":"Fallback success"}}]}\n\n',
             'data: [DONE]\n\n'
         ]);
-        const fetchStub = sandbox.stub(fetchModule, 'default' as any);
+        const fetchStub = sandbox.stub();
+        harness = new OpenRouterFreeHarness(fetchStub as unknown as typeof fetch);
 
         fetchStub.onCall(0).resolves({ status: 500, ok: false, text: async () => 'Server Error' } as any);
         fetchStub.onCall(1).resolves({ status: 500, ok: false, text: async () => 'Server Error' } as any);
@@ -43,7 +42,8 @@ suite('OpenRouterFreeHarness Model Failover Test Suite', () => {
     });
 
     test('throws error when all models and retries are exhausted', async () => {
-        const fetchStub = sandbox.stub(fetchModule, 'default' as any);
+        const fetchStub = sandbox.stub();
+        harness = new OpenRouterFreeHarness(fetchStub as unknown as typeof fetch);
         fetchStub.resolves({
             status: 500,
             ok: false,
@@ -58,5 +58,20 @@ suite('OpenRouterFreeHarness Model Failover Test Suite', () => {
                 return err.message.includes('exhausted') || err.message.includes('500');
             }
         );
+    });
+
+    test('preserves SSE records split across network chunks', async () => {
+        const stream = Readable.from([
+            'data: {"choices":[{"delta":{"con',
+            'tent":"Split success"}}]}\n\n',
+            'data: [DONE]\n\n'
+        ]);
+        const fetchStub = sandbox.stub().resolves({ status: 200, ok: true, body: stream } as any);
+        harness = new OpenRouterFreeHarness(fetchStub as unknown as typeof fetch);
+
+        const chunks: string[] = [];
+        await harness.generateExplanationStream('sk-test-key', 'Prompt text', (chunk) => chunks.push(chunk));
+
+        assert.deepStrictEqual(chunks, ['Split success']);
     });
 });

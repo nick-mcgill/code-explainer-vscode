@@ -3,6 +3,7 @@ import { SecretStorageService } from './services/secretStorage';
 import { TreeSitterExtractor } from './core/astExtractor';
 import { FunctionCodeLensProvider } from './providers/codeLensProvider';
 import { OpenRouterFreeHarness } from './core/harness';
+import { PromptBuilder } from './core/promptBuilder';
 import { ExplanationPanel } from './views/explanationPanel';
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -12,6 +13,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const codeLensProvider = new FunctionCodeLensProvider(astExtractor, context.extensionUri);
         context.subscriptions.push(
+                codeLensProvider,
                 vscode.languages.registerCodeLensProvider(
                         [
                                 { scheme: 'file', language: 'typescript' },
@@ -30,7 +32,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
                 vscode.commands.registerCommand(
                         'studentExplainer.explainAtPosition',
-                        async (uri: vscode.Uri, position: vscode.Position) => {
+                        async (
+                                uri?: vscode.Uri,
+                                position?: vscode.Position,
+                                codeRange?: vscode.Range,
+                                functionName?: string
+                        ) => {
                                 const apiKey = await secretService.getApiKey();
                                 if (!apiKey) {
                                         const setKey = 'Set API Key';
@@ -46,13 +53,22 @@ export async function activate(context: vscode.ExtensionContext) {
                                         return;
                                 }
 
-                                const document = editor.document;
-                                const wordRange = document.getWordRangeAtPosition(position);
-                                if (!wordRange) {
+                                const document = uri
+                                        ? await vscode.workspace.openTextDocument(uri)
+                                        : editor.document;
+                                const selectedRange = codeRange ?? (
+                                        position
+                                                ? document.getWordRangeAtPosition(position)
+                                                : editor.selection.isEmpty
+                                                        ? undefined
+                                                        : editor.selection
+                                );
+                                if (!selectedRange) {
+                                        vscode.window.showWarningMessage('Select a code block to explain.');
                                         return;
                                 }
 
-                                const functionCode = document.getText(wordRange);
+                                const functionCode = document.getText(selectedRange);
                                 if (functionCode.length > 1000) {
                                         vscode.window.showWarningMessage('Selected code block exceeds the 1,000 character limit.');
                                         return;
@@ -63,9 +79,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
                                 try {
                                         panel.clear();
+                                        const prompt = new PromptBuilder().buildPrompt({
+                                                codeSnippet: functionCode,
+                                                languageId: document.languageId,
+                                                functionName,
+                                                fileUri: document.uri
+                                        });
                                         await harness.generateExplanationStream(
                                                 apiKey,
-                                                `Explain this code for a student:\n\n${functionCode}`,
+                                                prompt,
                                                 (chunk) => panel.appendStreamChunk(chunk)
                                         );
                                 } catch (err: any) {

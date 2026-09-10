@@ -1,18 +1,55 @@
 # Student Code Explainer
 
-A VS Code extension designed to help computer science students understand code by generating AI-powered explanations directly inside the editor.
+A production-ready VS Code extension designed to help computer science students understand complex code by delivering context-aware, AI-powered explanations directly inside the editor.
+
+Built with performance, security, and reliability in mind, it parses Abstract Syntax Trees (ASTs) locally and streams structured responses from OpenRouter using an resilient multi-model failover strategy.
+
+---
 
 ## Features
 
-- **Inline CodeLens Integration**: Displays clickable `$(sparkle) Explain` CodeLenses directly above function declarations.
-- **AST Parsing**: Uses `web-tree-sitter` to accurately locate and frame function blocks for evaluation.
-- **Resilient AI Harness**: Connects to OpenRouter's free API tier with built-in retry logic, exponential backoff, and automatic failover across multiple models (Llama 3.3, Qwen 2.5 Coder, DeepSeek R1).
-- **Secure Key Storage**: Encrypts and retrieves your OpenRouter API key natively using `vscode.SecretStorage`.
-- **Side Panel Webview**: Streams explanations in real time within a dedicated webview panel protected by a strict Content Security Policy (CSP).
+- **Inline CodeLens Integration**: Automatically displays clickable `$(sparkle) Explain` action triggers above functions, methods, and key structures using AST parsing.
+- **Code Extraction**: Uses local syntax-aware boundary detection to ensure complete function blocks are passed as LLM context.
+- **Resilient AI Harness**: Connects to OpenRouter's free-tier APIs with built-in retry logic, exponential backoff, and dynamic failover across models (`Llama 3.3`, `Qwen 2.5 Coder`, and `DeepSeek R1`).
+- **Encrypted Secret Storage**: Native key management using `vscode.SecretStorage` to keep user API tokens secure on disk.
+- **Side Panel Webview**: Real-time response streaming in an isolated webview panel protected by strict Content Security Policies (CSP).
 
-## Setup & Local Development
+---
 
-1. **Install Dependencies**:
+## Architecture & Tech Stack
+
+- **Language**: TypeScript (ES2022 / Node 24 runtime target)
+- **Bundler**: `esbuild` (strict <250KB bundle limit quality gate)
+- **Code Parsing**: Local syntax-aware extraction
+- **Security**: `vscode.SecretStorage`
+- **Test Framework**: `mocha` + `@vscode/test-cli` + `sinon`
+- **Coverage**: `c8` reporting for the extension-host test suite
+
+---
+
+## Installation & Setup
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) v24.0.0 or higher
+- [VS Code](https://code.visualstudio.com/) v1.85.0 or higher
+
+### Development Setup
+
+1. **Clone Repository & Install Dependencies**:
    ```bash
-      npm install
-      
+   git clone [https://github.com/local-dev/student-explainer.git](https://github.com/local-dev/student-explainer.git)
+   cd student-explainer
+   npm ci
+   ```
+
+2. **Build and test**:
+   ```bash
+   npm run compile
+   npm test
+   ```
+
+3. **Package the extension**:
+   ```bash
+   npm run package
+   ```

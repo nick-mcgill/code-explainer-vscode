@@ -2,6 +2,7 @@ const esbuild = require('esbuild');
 
 const isProduction = process.argv.includes('--production');
 const isWatch = process.argv.includes('--watch');
+const shouldMinify = isProduction || process.argv.includes('--minify');
 
 /** @type {import('esbuild').BuildOptions} */
 const buildOptions = {
@@ -11,9 +12,10 @@ const buildOptions = {
   external: ['vscode'],
   format: 'cjs',
   platform: 'node',
-  target: 'node18',
-  sourcemap: !isProduction,
-  minify: isProduction,
+  target: 'node24',
+  sourcemap: !shouldMinify,
+  minify: shouldMinify,
+  metafile: shouldMinify,
   logLevel: 'info'
 };
 
@@ -23,7 +25,13 @@ async function main() {
     await ctx.watch();
     console.log('Watching for changes...');
   } else {
-    await esbuild.build(buildOptions);
+    const result = await esbuild.build(buildOptions);
+    if (shouldMinify) {
+      const output = result.metafile?.outputs?.['dist/extension.js'];
+      if (output && output.bytes > 250 * 1024) {
+        throw new Error(`Production bundle is ${output.bytes} bytes; maximum is 250 KB.`);
+      }
+    }
   }
 }
 

@@ -19,7 +19,7 @@
                         "title": "Student Explainer: Set OpenRouter API Key"
                   },
                   {
-                        "command": "studentExplainer.explainCode",
+                        "command": "studentExplainer.explainAtPosition",
                         "title": "Student Explainer: Explain Selected Code"
                   }
             ],
@@ -48,7 +48,6 @@
             "@types/jest": "^30.0.0",
             "@types/mocha": "^10.0.10",
             "@types/node": "^24.0.0",
-            "@types/node-fetch": "^2.6.11",
             "@types/sinon": "^17.0.3",
             "@types/vscode": "^1.85.0",
             "@vscode/test-cli": "^0.0.10",
@@ -60,10 +59,7 @@
             "sinon": "^17.0.1",
             "typescript": "^5.4.0"
       },
-      "dependencies": {
-            "node-fetch": "^2.7.0",
-            "web-tree-sitter": "^0.20.8"
-      },
+      "dependencies": {},
       "allowScripts": {
             "esbuild@0.20.2": true
       }

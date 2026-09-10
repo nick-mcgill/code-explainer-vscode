@@ -5,6 +5,7 @@ export class FunctionCodeLensProvider implements vscode.CodeLensProvider {
       private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
       public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
       private disposables: vscode.Disposable[] = [];
+      private disposed = false;
 
       constructor(
             private readonly extractor: TreeSitterExtractor,
@@ -60,7 +61,7 @@ export class FunctionCodeLensProvider implements vscode.CodeLensProvider {
                         return new vscode.CodeLens(loc.range, {
                               title: `$(sparkle) Explain ${loc.name}()`,
                               command: 'studentExplainer.explainAtPosition',
-                              arguments: [document.uri, loc.range.start]
+                              arguments: [document.uri, loc.range.start, loc.codeRange, loc.name]
                         });
                   });
             } catch (err) {
@@ -70,7 +71,13 @@ export class FunctionCodeLensProvider implements vscode.CodeLensProvider {
       }
 
       public dispose(): void {
-            this._onDidChangeCodeLenses.dispose();
+            if (this.disposed) {
+                  return;
+            }
+
+            this.disposed = true;
             this.disposables.forEach((d) => d.dispose());
+            this.disposables = [];
+            this._onDidChangeCodeLenses.dispose();
       }
 }

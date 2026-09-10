@@ -45,4 +45,20 @@ suite('FunctionCodeLensProvider Test Suite', () => {
 
         assert.deepStrictEqual(lenses, []);
     });
+
+    test('CodeLens passes the complete code range and function name', async () => {
+        mockExtractor.initParser.resolves(true);
+        const codeRange = new vscode.Range(0, 0, 2, 1);
+        mockExtractor.getFunctionLocations.returns([{
+            name: 'calculate',
+            range: new vscode.Range(0, 0, 0, 9),
+            codeRange
+        }]);
+        const doc = { languageId: 'typescript', uri: vscode.Uri.file('test.ts') } as vscode.TextDocument;
+
+        const lenses = await provider.provideCodeLenses(doc, new vscode.CancellationTokenSource().token);
+        const command = lenses[0].command;
+
+        assert.deepStrictEqual(command?.arguments, [doc.uri, new vscode.Position(0, 0), codeRange, 'calculate']);
+    });
 });

@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 const FALLBACK_MODELS = [
   'meta-llama/llama-3.3-70b-instruct:free',
   'qwen/qwen-2.5-coder-32b-instruct:free',
@@ -7,6 +5,8 @@ const FALLBACK_MODELS = [
 ];
 
 export class OpenRouterFreeHarness {
+  constructor(private readonly fetchImpl: typeof globalThis.fetch = globalThis.fetch) { }
+
   public async generateExplanationStream(
     apiKey: string,
     prompt: string,
@@ -23,7 +23,7 @@ export class OpenRouterFreeHarness {
             await new Promise((res) => setTimeout(res, backoffMs));
           }
 
-          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          const response = await this.fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${apiKey}`,
@@ -47,13 +47,20 @@ export class OpenRouterFreeHarness {
             throw new Error(`HTTP Error ${response.status}: ${await response.text()}`);
           }
 
+          let buffer = '';
+          let done = false;
           for await (const chunkBuffer of response.body) {
-            const lines = chunkBuffer.toString().split('\n');
+            buffer += chunkBuffer.toString();
+            const lines = buffer.split(/\r?\n/);
+            buffer = lines.pop() ?? '';
             for (const line of lines) {
               const trimmed = line.trim();
               if (!trimmed.startsWith('data: ')) continue;
               const dataStr = trimmed.slice(6);
-              if (dataStr === '[DONE]') break;
+              if (dataStr === '[DONE]') {
+                done = true;
+                break;
+              }
 
               try {
                 const parsed = JSON.parse(dataStr);
@@ -61,9 +68,19 @@ export class OpenRouterFreeHarness {
                 if (content) {
                   onChunk(content);
                 }
-              } catch {
-                // Ignore chunk parse errors
+              } catch (err) {
+                throw new Error(`Invalid streaming response: ${String(err)}`);
               }
+            }
+            if (done) break;
+          }
+
+          if (buffer.trim() && !done) {
+            const trimmed = buffer.trim();
+            if (trimmed.startsWith('data: ') && trimmed.slice(6) !== '[DONE]') {
+              const parsed = JSON.parse(trimmed.slice(6));
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) onChunk(content);
             }
           }
 
