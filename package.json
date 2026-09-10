@@ -38,14 +38,15 @@
             "compile": "node esbuild.js",
             "watch": "node esbuild.js --watch",
             "package": "node esbuild.js --minify",
-            "pretest": "npm run compile",
+            "pretest": "tsc -p ./",
             "test": "vscode-test",
             "test:coverage": "c8 --reporter=html --reporter=text npm test",
             "coverage:open": "npm run test:coverage && open-cli coverage/index.html"
       },
       "devDependencies": {
-            "@types/mocha": "^10.0.6",
-            "@types/node": "^20.x",
+            "@types/jest": "^30.0.0",
+            "@types/mocha": "^10.0.10",
+            "@types/node": "^20.19.43",
             "@types/node-fetch": "^2.6.11",
             "@types/sinon": "^17.0.3",
             "@types/vscode": "^1.85.0",
@@ -53,7 +54,7 @@
             "@vscode/test-electron": "^2.4.0",
             "c8": "^9.1.0",
             "esbuild": "^0.20.0",
-            "mocha": "^10.4.0",
+            "mocha": "^10.8.2",
             "open-cli": "^8.0.0",
             "sinon": "^17.0.1",
             "typescript": "^5.4.0"

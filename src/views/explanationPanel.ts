@@ -2,40 +2,40 @@ import * as vscode from 'vscode';
 
 export class ExplanationPanel {
   public static currentPanel: ExplanationPanel | undefined;
-    private readonly panel: vscode.WebviewPanel;
-      private disposables: vscode.Disposable[] = [];
+  private readonly panel: vscode.WebviewPanel;
+  private disposables: vscode.Disposable[] = [];
 
-        private constructor(panel: vscode.WebviewPanel) {
-            this.panel = panel;
-                this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
-                  }
+  private constructor(panel: vscode.WebviewPanel) {
+    this.panel = panel;
+    this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+  }
 
-                    public static createOrShow(extensionUri: vscode.Uri): ExplanationPanel {
-                        if (ExplanationPanel.currentPanel) {
-                              ExplanationPanel.currentPanel.panel.reveal(vscode.ViewColumn.Beside);
-                                    return ExplanationPanel.currentPanel;
-                                        }
+  public static createOrShow(extensionUri: vscode.Uri): ExplanationPanel {
+    if (ExplanationPanel.currentPanel) {
+      ExplanationPanel.currentPanel.panel.reveal(vscode.ViewColumn.Beside);
+      return ExplanationPanel.currentPanel;
+    }
 
-                                            const panel = vscode.window.createWebviewPanel(
-                                                  'studentExplainerView',
-                                                        'AI Code Explanation',
-                                                              vscode.ViewColumn.Beside,
-                                                                    {
-                                                                            enableScripts: true,
-                                                                                    retainContextWhenHidden: true,
-                                                                                            localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')]
-                                                                                                  }
-                                                                                                      );
+    const panel = vscode.window.createWebviewPanel(
+      'studentExplainerView',
+      'AI Code Explanation',
+      vscode.ViewColumn.Beside,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')]
+      }
+    );
 
-                                                                                                          ExplanationPanel.currentPanel = new ExplanationPanel(panel);
-                                                                                                              return ExplanationPanel.currentPanel;
-                                                                                                                }
+    ExplanationPanel.currentPanel = new ExplanationPanel(panel);
+    return ExplanationPanel.currentPanel;
+  }
 
-                                                                                                                  public updateContent(initialText: string = ''): void {
-                                                                                                                      const webview = this.panel.webview;
-                                                                                                                          const nonce = this.getNonce();
+  public updateContent(initialText: string = ''): void {
+    const webview = this.panel.webview;
+    const nonce = this.getNonce();
 
-                                                                                                                              webview.html = `<!DOCTYPE html>
+    webview.html = `<!DOCTYPE html>
                                                                                                                               <html lang="en">
                                                                                                                               <head>
                                                                                                                                 <meta charset="UTF-8">
@@ -72,24 +72,23 @@ export class ExplanationPanel {
                                                                                                                                                                                                                                                               </script>
                                                                                                                                                                                                                                                               </body>
                                                                                                                                                                                                                                                               </html>`;
-                                                                                                                                                                                                                                                                }
+  }
 
-                                                                                                                                                                                                                                                                  public appendStreamChunk(text: string): void {
-                                                                                                                                                                                                                                                                      this.panel.webview.postMessage({ command: 'appendChunk', text });
-                                                                                                                                                                                                                                                                        }
+  public appendStreamChunk(text: string): void {
+    this.panel.webview.postMessage({ command: 'appendChunk', text });
+  }
 
-                                                                                                                                                                                                                                                                          public clear(): void {
-                                                                                                                                                                                                                                                                              this.panel.webview.postMessage({ command: 'clear' });
-                                                                                                                                                                                                                                                                                }
+  public clear(): void {
+    this.panel.webview.postMessage({ command: 'clear' });
+  }
 
-                                                                                                                                                                                                                                                                                  private getNonce(): string {
-                                                                                                                                                                                                                                                                                      return Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-                                                                                                                                                                                                                                                                                        }
+  private getNonce(): string {
+    return Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  }
 
-                                                                                                                                                                                                                                                                                          public dispose(): void {
-                                                                                                                                                                                                                                                                                              ExplanationPanel.currentPanel = undefined;
-                                                                                                                                                                                                                                                                                                  this.panel.dispose();
-                                                                                                                                                                                                                                                                                                      this.disposables.forEach((d) => d.dispose());
-                                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                                        
+  public dispose(): void {
+    ExplanationPanel.currentPanel = undefined;
+    this.panel.dispose();
+    this.disposables.forEach((d) => d.dispose());
+  }
+}
