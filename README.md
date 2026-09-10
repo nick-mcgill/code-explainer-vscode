@@ -10,7 +10,7 @@ Built with performance, security, and reliability in mind, it parses Abstract Sy
 
 - **Inline CodeLens Integration**: Automatically displays clickable `$(sparkle) Explain` action triggers above functions, methods, and key structures using AST parsing.
 - **Code Extraction**: Uses local syntax-aware boundary detection to ensure complete function blocks are passed as LLM context.
-- **Resilient AI Harness**: Connects to OpenRouter's free-tier APIs with built-in retry logic, exponential backoff, and dynamic failover across models (`Llama 3.3`, `Qwen 2.5 Coder`, and `DeepSeek R1`).
+- **Resilient AI Harness**: Queries OpenRouter for currently available free text-generation models, prefers compatible coding models when listed, and uses retry logic, exponential backoff, and dynamic failover.
 - **Encrypted Secret Storage**: Native key management using `vscode.SecretStorage` to keep user API tokens secure on disk.
 - **Side Panel Webview**: Real-time response streaming in an isolated webview panel protected by strict Content Security Policies (CSP).
 

@@ -1,8 +1,19 @@
-const FALLBACK_MODELS = [
+const PREFERRED_MODELS = [
   'meta-llama/llama-3.3-70b-instruct:free',
-  'qwen/qwen-2.5-coder-32b-instruct:free',
-  'deepseek/deepseek-r1:free'
+  'qwen/qwen-2.5-coder-32b-instruct:free'
 ];
+
+interface OpenRouterModel {
+  id?: string;
+  pricing?: {
+    prompt?: string;
+    completion?: string;
+  };
+  architecture?: {
+    input_modalities?: string[];
+    output_modalities?: string[];
+  };
+}
 
 export class OpenRouterFreeHarness {
   constructor(private readonly fetchImpl: typeof globalThis.fetch = globalThis.fetch) { }
@@ -13,9 +24,10 @@ export class OpenRouterFreeHarness {
     onChunk: (chunk: string) => void,
     signal?: AbortSignal
   ): Promise<{ modelUsed: string }> {
+    const models = await this.getAvailableFreeModels(apiKey, signal);
     let lastError: Error | null = null;
 
-    for (const model of FALLBACK_MODELS) {
+    for (const model of models) {
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           if (attempt > 0) {
@@ -41,6 +53,11 @@ export class OpenRouterFreeHarness {
 
           if (response.status === 429) {
             continue;
+          }
+
+          if (response.status === 404) {
+            lastError = new Error(`Model '${model}' is no longer available.`);
+            break;
           }
 
           if (!response.ok || !response.body) {
@@ -93,5 +110,37 @@ export class OpenRouterFreeHarness {
     }
 
     throw lastError || new Error('All model endpoints and retries exhausted.');
+  }
+
+  private async getAvailableFreeModels(apiKey: string, signal?: AbortSignal): Promise<string[]> {
+    const response = await this.fetchImpl('https://openrouter.ai/api/v1/models', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://github.com/student-explainer',
+        'X-Title': 'Student Explainer VSCode'
+      },
+      signal
+    });
+
+    if (!response.ok) {
+      throw new Error(`Unable to discover OpenRouter models (HTTP ${response.status}).`);
+    }
+
+    const payload = await response.json() as { data?: OpenRouterModel[] };
+    const freeTextModels = (payload.data ?? [])
+      .filter((model) => model.id && model.pricing?.prompt === '0' && model.pricing?.completion === '0')
+      .filter((model) =>
+        model.architecture?.input_modalities?.includes('text') &&
+        model.architecture?.output_modalities?.includes('text')
+      )
+      .map((model) => model.id as string);
+
+    const preferred = PREFERRED_MODELS.filter((model) => freeTextModels.includes(model));
+    const remaining = freeTextModels.filter((model) => !preferred.includes(model));
+    const models = [...preferred, ...remaining];
+    if (models.length === 0) {
+      throw new Error('OpenRouter returned no available free text-generation models.');
+    }
+    return models;
   }
 }
