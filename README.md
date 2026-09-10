@@ -23,7 +23,7 @@ Built with performance, security, and reliability in mind, it parses Abstract Sy
 - **Code Parsing**: Local syntax-aware extraction
 - **Security**: `vscode.SecretStorage`
 - **Test Framework**: `mocha` + `@vscode/test-cli` + `sinon`
-- **Coverage**: `c8` reporting for the extension-host test suite
+- **Coverage**: `c8`-enforced coverage for same-process unit tests; VS Code integration tests run separately
 
 ---
 
@@ -47,6 +47,11 @@ Built with performance, security, and reliability in mind, it parses Abstract Sy
    ```bash
    npm run compile
    npm test
+   ```
+
+   To run the coverage-enforced unit suite:
+   ```bash
+   npm run test:coverage
    ```
 
 3. **Package the extension**:

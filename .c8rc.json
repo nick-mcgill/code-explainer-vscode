@@ -1,10 +1,10 @@
 {
   "all": true,
   "include": [
-    "src/**/*.ts"
+    "out/src/core/harness.js"
   ],
   "exclude": [
-    "src/test/**/*.ts",
+    "out/test/**/*.js",
     "**/*.d.ts"
   ],
   "reporter": [

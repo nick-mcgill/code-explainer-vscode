@@ -74,4 +74,20 @@ suite('OpenRouterFreeHarness Model Failover Test Suite', () => {
 
         assert.deepStrictEqual(chunks, ['Split success']);
     });
+
+    test('retries rate-limited responses and parses a final unterminated SSE record', async () => {
+        const stream = Readable.from([
+            'data: {"choices":[{"delta":{"content":"Rate limit recovered"}}]}'
+        ]);
+        const fetchStub = sandbox.stub();
+        fetchStub.onFirstCall().resolves({ status: 429, ok: false, text: async () => 'Rate limited' } as any);
+        fetchStub.onSecondCall().resolves({ status: 200, ok: true, body: stream } as any);
+        harness = new OpenRouterFreeHarness(fetchStub as unknown as typeof fetch);
+
+        const chunks: string[] = [];
+        await harness.generateExplanationStream('sk-test-key', 'Prompt text', (chunk) => chunks.push(chunk));
+
+        assert.deepStrictEqual(chunks, ['Rate limit recovered']);
+        assert.strictEqual(fetchStub.callCount, 2);
+    });
 });
